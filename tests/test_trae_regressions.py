@@ -247,5 +247,39 @@ class TraePickBatchTests(unittest.TestCase):
         self.assertEqual([], self._pick("2", []))
 
 
+class TraeAccountsMergeTests(unittest.TestCase):
+    """TRAE_ACCOUNTS 与 TRAE_ACCOUNTS2 必须合并成一份账号列表。"""
+
+    def _load(self, env):
+        with patch.dict("os.environ", env, clear=True), \
+                patch.object(CHECKIN, "apply_cache",
+                             side_effect=lambda accounts, cache=None: accounts), \
+                patch.object(CHECKIN, "filter_only", side_effect=lambda accounts: accounts):
+            return CHECKIN.load_accounts()
+
+    def test_merges_accounts_and_accounts2(self):
+        accounts = self._load({
+            "TRAE_ACCOUNTS": json.dumps([{"accessToken": "a", "refreshToken": "ra", "uid": "111"}]),
+            "TRAE_ACCOUNTS2": json.dumps([{"accessToken": "b", "refreshToken": "rb", "uid": "222"}]),
+        })
+        self.assertEqual(["111", "222"], [a["uid"] for a in accounts])
+
+    def test_duplicate_uid_is_kept_once(self):
+        entry = {"accessToken": "a", "refreshToken": "ra", "uid": "111"}
+        accounts = self._load({
+            "TRAE_ACCOUNTS": json.dumps([entry]),
+            "TRAE_ACCOUNTS2": json.dumps([dict(entry, accessToken="new")]),
+        })
+        self.assertEqual(1, len(accounts))
+        self.assertEqual("a", accounts[0]["accessToken"])
+
+    def test_invalid_accounts2_does_not_break_accounts(self):
+        accounts = self._load({
+            "TRAE_ACCOUNTS": json.dumps([{"accessToken": "a", "refreshToken": "ra", "uid": "111"}]),
+            "TRAE_ACCOUNTS2": "{not json",
+        })
+        self.assertEqual(["111"], [a["uid"] for a in accounts])
+
+
 if __name__ == "__main__":
     unittest.main()

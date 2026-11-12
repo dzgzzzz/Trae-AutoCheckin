@@ -39,6 +39,7 @@ Trae AutoCheckin · Trae 每日自动签到（抗 9074 限流版）
 
 📦 环境变量
   TRAE_ACCOUNTS            多账号 JSON 数组（推荐），字段见下
+  TRAE_ACCOUNTS2~9         追加的账号 JSON 数组（可选，与 TRAE_ACCOUNTS 合并去重）
   TRAE_REFRESH_TOKEN       第 1 个账号的 refreshToken（兼容旧部署，accessToken 自动换取）
   TRAE_REFRESH_TOKEN_2~_9  第 2~9 个账号的 refreshToken（可选）
   TRAE_ACCESS_TOKEN        单账号 accessToken（可选）
@@ -1013,25 +1014,53 @@ def filter_only(accounts):
     return accounts
 
 
+def dedupe_accounts(accounts):
+    """同一账号可能同时出现在 TRAE_ACCOUNTS 和 TRAE_ACCOUNTS2 里，按缓存键去重。"""
+    seen, out = set(), []
+    for acc in accounts:
+        key = _acct_key(acc)
+        if key in seen:
+            print('⚠️ [凭据] 账号 %s 重复出现，已忽略后一条' % key, file=sys.stderr)
+            continue
+        seen.add(key)
+        out.append(acc)
+    return out
+
+
+def accounts_env_names():
+    """收集 TRAE_ACCOUNTS / TRAE_ACCOUNTS2~9 的变量名，按序号升序排列。"""
+    names = []
+    for name in os.environ:
+        m = re.match(r'^TRAE_ACCOUNTS(\d*)$', name.upper())
+        if m and os.environ.get(name, '').strip():
+            names.append((int(m.group(1) or 1), name))
+    return [name for _, name in sorted(names)]
+
+
 def load_accounts():
-    # 1) 多账号：TRAE_ACCOUNTS 为 JSON 数组（推荐，全部走环境变量）
-    raw_list = os.getenv('TRAE_ACCOUNTS', '').strip()
-    if raw_list:
-        try:
-            data = json.loads(raw_list)
-        except Exception as e:
-            print('❌ [凭据] TRAE_ACCOUNTS 不是合法 JSON: %s' % e, file=sys.stderr)
-            print('   格式示例: [{"refreshToken":"AbCd...0000","uid":"账号1"}]', file=sys.stderr)
-            print('   注意用英文双引号；推荐运行 trae_get_token.py --accounts 自动生成整行。', file=sys.stderr)
-            sys.exit(1)
-        data = [data] if isinstance(data, dict) else data
+    # 1) 多账号：TRAE_ACCOUNTS / TRAE_ACCOUNTS2~9 都是 JSON 数组（推荐，全部走环境变量）
+    env_names = accounts_env_names()
+    if env_names:
         accounts = []
-        for i, raw in enumerate(data):
+        for var in env_names:
             try:
-                accounts.append(build_account(raw, raw.get('name', '账号%d' % (i + 1))))
+                data = json.loads(os.environ[var].strip())
             except Exception as e:
-                print('❌ [凭据] 账号%d 加载失败: %s' % (i + 1, e), file=sys.stderr)
-        accounts = filter_only(apply_cache(accounts))
+                print('❌ [凭据] %s 不是合法 JSON: %s' % (var, e), file=sys.stderr)
+                print('   格式示例: [{"refreshToken":"AbCd...0000","uid":"账号1"}]', file=sys.stderr)
+                print('   注意用英文双引号；推荐运行 trae_get_token.py --accounts 自动生成整行。', file=sys.stderr)
+                continue
+            if isinstance(data, dict):
+                data = [data]
+            if not isinstance(data, list):
+                print('❌ [凭据] %s 必须是 JSON 数组或对象' % var, file=sys.stderr)
+                continue
+            for i, raw in enumerate(data):
+                try:
+                    accounts.append(build_account(raw, raw.get('name', '账号%d' % (i + 1))))
+                except Exception as e:
+                    print('❌ [凭据] %s 账号%d 加载失败: %s' % (var, i + 1, e), file=sys.stderr)
+        accounts = filter_only(apply_cache(dedupe_accounts(accounts)))
         if accounts:
             return accounts
         print('❌ [凭据] TRAE_ACCOUNTS 中没有任何可用账号。', file=sys.stderr)

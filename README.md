@@ -245,7 +245,7 @@ python trae_credit_monitor.py   # 查积分
 
 1. Fork 本仓库到自己的账号，进入 Actions 页面启用 workflows；
 2. 在 Settings → Secrets and variables → Actions 添加：
-   - `TRAE_ACCOUNTS`（推荐）或旧版 `TRAE_REFRESH_TOKEN`；
+   - `TRAE_ACCOUNTS`（推荐）或旧版 `TRAE_REFRESH_TOKEN`；再加账号时可直接用 `TRAE_ACCOUNTS2` 分开存；
    - `TRAE_DEVICE_KEY_PEM` / `TRAE_DEVICE_PUB_PEM` / `TRAE_MACHINE_ID` / `TRAE_DEVICE_ID`（新版续期必需）；
    - `TRAE_CACHE_KEY`（必填）：自己生成一个足够长的随机字符串，用于加密轮换 token 缓存；
    - `QYWX_TOKEN` / `PLUSPLUS_TOKEN`（可选）。
@@ -261,6 +261,7 @@ python trae_credit_monitor.py   # 查积分
 | 变量 | 必填 | 说明 |
 | :--- | :---: | :--- |
 | `TRAE_ACCOUNTS` | ✅ | 多账号 JSON 数组（推荐）：每号可给 `accessToken` / `refreshToken` / `icubeAuth` / `storagePath` |
+| `TRAE_ACCOUNTS2~9` | ➖ | 追加账号的 JSON 数组，与 `TRAE_ACCOUNTS` 合并后按 uid 去重；适合 Secret 分开维护 |
 | `TRAE_REFRESH_TOKEN[_N]` | ➖ | 旧部署兼容：refreshToken（无 TRAE_ACCOUNTS 时生效） |
 | `TRAE_ACCESS_TOKEN[_N]` | ➖ | 已有 accessToken 时直接给，省一次续期 |
 | `TRAE_ICUBE_AUTH` | ➖ | 桌面端加密凭据串，脚本自动解密（需 cryptography） |

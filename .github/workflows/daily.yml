@@ -49,6 +49,7 @@ jobs:
       - name: Run checkin
         env:
           TRAE_ACCOUNTS: ${{ secrets.TRAE_ACCOUNTS }}
+          TRAE_ACCOUNTS2: ${{ secrets.TRAE_ACCOUNTS2 }}
           TRAE_REFRESH_TOKEN: ${{ secrets.TRAE_REFRESH_TOKEN }}
           TRAE_REFRESH_TOKEN_2: ${{ secrets.TRAE_REFRESH_TOKEN_2 }}
           TRAE_REFRESH_TOKEN_3: ${{ secrets.TRAE_REFRESH_TOKEN_3 }}
