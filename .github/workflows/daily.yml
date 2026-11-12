@@ -35,9 +35,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .trae-cache/state.enc
-          key: trae-state-v1-${{ github.run_id }}
+          key: trae-state-v2-${{ github.run_id }}
           restore-keys: |
-            trae-state-v1-
+            trae-state-v2-
 
       - name: Decrypt state
         if: ${{ hashFiles('.trae-cache/state.enc') != '' }}
@@ -103,4 +103,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .trae-cache/state.enc
-          key: trae-state-v1-${{ github.run_id }}
+          key: trae-state-v2-${{ github.run_id }}
